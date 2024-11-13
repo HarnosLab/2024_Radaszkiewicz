@@ -1,0 +1,102 @@
+---
+title: "PRK gprofiler"
+output: 
+  html_document:
+    toc: true
+    toc_float: true
+    theme: flatly
+---
+
+# Setup 
+
+Libraries required
+```{r libraries, message=FALSE, warning=FALSE}
+library(dplyr)
+library(here)
+library(tibble)
+library(tidyr)
+library(gprofiler2)
+```
+
+#  Data import
+
+```{r import, message=FALSE, warning=FALSE}
+load(here("data", "data-preprocessed.RData"))
+```
+
+# Unique bait interactors
+
+```{r interactors, message=FALSE, warning=FALSE}
+tmp <- subset %>%
+  rowwise() %>%
+  mutate(sum_up = sum(c(up_PRK1, up_PRK2, up_PRK3)))
+
+PRK1 <- tmp %>%
+  filter(sum_up == 1 & up_PRK1 == 1) 
+
+PRK2 <- tmp %>%
+  filter(sum_up == 1 & up_PRK2 == 1) 
+
+PRK3 <- tmp %>%
+  filter(sum_up == 1 & up_PRK3 == 1)
+```
+
+# PRK1 gprofiler
+
+## All upregulated
+```{r interactors-prk1-all, message=FALSE, warning=FALSE}
+PRK1_all <-  tmp %>% filter(up_PRK1 == 1) %>% select(Suggested.Symbol)
+
+gostres_PRK1_all <- gost(query = PRK1_all$Suggested.Symbol, organism = "hsapiens")
+
+gostplot(gostres_PRK1_all, capped = TRUE, interactive = TRUE)
+```
+
+## Unique
+```{r interactors-prk1-unique, message=FALSE, warning=FALSE}
+PRK1_unique <-  tmp %>% filter(up_PRK1 == 1 & sum_up == 1) %>% select(Suggested.Symbol)
+
+gostres_PRK1_unique <- gost(query = PRK1_unique$Suggested.Symbol, organism = "hsapiens")
+
+gostplot(gostres_PRK1_unique, capped = TRUE, interactive = TRUE)
+```
+
+# PRK2 gprofiler
+
+## All upregulated
+```{r interactors-prk2-all, message=FALSE, warning=FALSE}
+PRK2_all <-  tmp %>% filter(up_PRK2 == 1) %>% select(Suggested.Symbol)
+
+gostres_PRK2_all <- gost(query = PRK2_all$Suggested.Symbol, organism = "hsapiens")
+
+gostplot(gostres_PRK2_all, capped = TRUE, interactive = TRUE)
+```
+
+## Unique
+```{r interactors-prk2-unique, message=FALSE, warning=FALSE}
+PRK2_unique <-  tmp %>% filter(up_PRK2 == 1 & sum_up == 1) %>% select(Suggested.Symbol)
+
+gostres_PRK2_unique <- gost(query = PRK2_unique$Suggested.Symbol, organism = "hsapiens")
+
+gostplot(gostres_PRK2_unique, capped = TRUE, interactive = TRUE)
+```
+
+# PRK3 gprofiler
+
+## All upregulated
+```{r interactors-prk3-all, message=FALSE, warning=FALSE}
+PRK3_all <-  tmp %>% filter(up_PRK3 == 1) %>% select(Suggested.Symbol)
+
+gostres_PRK3_all <- gost(query = PRK3_all$Suggested.Symbol, organism = "hsapiens")
+
+gostplot(gostres_PRK3_all, capped = TRUE, interactive = TRUE)
+```
+
+## Unique
+```{r interactors-prk3-unique, message=FALSE, warning=FALSE}
+PRK3_unique <-  tmp %>% filter(up_PRK3 == 1 & sum_up == 1) %>% select(Suggested.Symbol)
+
+gostres_PRK3_unique <- gost(query = PRK3_unique$Suggested.Symbol, organism = "hsapiens")
+
+gostplot(gostres_PRK3_unique, capped = TRUE, interactive = TRUE)
+```
