@@ -1,0 +1,74 @@
+---
+title: "Wnt genes"
+output: 
+  html_document:
+    toc: true
+    toc_float: true
+    theme: flatly
+---
+
+# Setup 
+
+Libraries required
+```{r libraries, message=FALSE, warning=FALSE}
+library(dplyr)
+library(here)
+library(tibble)
+library(tidyr)
+library(HGNChelper)
+library(ggplot2)
+library(ggrepel)
+```
+
+
+# Data input
+
+```{r data-input, message=FALSE, warning=FALSE}
+load(here('data', 'data-preprocessed.RData'))
+```
+
+Import the wnt proteins
+```{r pcp-proteins-import}
+vec <- c("LRP6", "FZD3", "ROR1", "ROR2", "CELSR1", "CELSR2", "VANGL1", "VANGL2")
+```
+
+Transform to long format
+```{r data-long}
+data.filt <- subset %>%
+  select(Suggested.Symbol,
+         ends_with("adj.P.Val"),
+         ends_with("logFC"))
+
+data.filt <- data.filt %>%
+  rename('logFC_PRK1' = 'PRK1.CTRL.logFC',
+         'logFC_PRK2' = 'PRK2.CTRL.logFC',
+         'logFC_PRK3' = 'PRK3.CTRL.logFC',
+         'padj_PRK1' = 'PRK1.CTRL.adj.P.Val',
+         'padj_PRK2' = 'PRK2.CTRL.adj.P.Val',
+         'padj_PRK3' = 'PRK3.CTRL.adj.P.Val')
+
+data.long <- pivot_longer(data.filt, 
+                          cols = !Suggested.Symbol,
+                          names_to = c(".value", "Var"),
+                          names_sep = "_")
+```
+
+# PCP proteins
+
+```{r pcp-proteins}
+myColors <- c("#94C96E", "#315D00", "#90005D")
+names(myColors) <- levels(factor(data.long$Var))
+colScale <- scale_color_manual(name = "PRICKLE_isoform",values = myColors)
+
+for (i in 1:length(vec)){
+p <- data.long %>%
+  filter(Suggested.Symbol == vec[i]) %>%
+  ggplot(aes(x = logFC, y = -log10(padj), col = Var, label = Var))+
+  geom_point()+
+  geom_label_repel()+
+  theme_minimal()+
+  labs(title = vec[i])+
+  colScale
+
+print(p)
+}
