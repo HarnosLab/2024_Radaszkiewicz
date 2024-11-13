@@ -1,0 +1,245 @@
+---
+title: "General PRK interactome description"
+output: 
+  html_document:
+    toc: true
+    toc_float: true
+    theme: flatly
+---
+
+# Setup 
+
+Libraries required
+```{r libraries, message=FALSE, warning=FALSE}
+library(dplyr)
+library(here)
+library(factoextra)
+library(tibble)
+library(tidyr)
+library(UpSetR)
+library(HGNChelper)
+```
+
+# Data input
+
+On the input, there is an exported table from KNIME with transformed protein intensities and results of the statistical test.
+
+```{r data-input, message=FALSE, warning=FALSE}
+data <- read.delim(here('data', '20240502_report.txt'))
+subset <- data %>%
+  select(UniProt_Gene.Names..primary., UniProt_Protein.ID, ends_with("_imp"), ends_with("adj.P.val"), ends_with("logFC"))
+
+colnames(subset) <- gsub("_log2_norm_imp", "", colnames(subset))
+colnames(subset) <- gsub("PG.MaxLFQ.", "", colnames(subset))
+colnames(subset) <- gsub("LIMMA_DIA_", "", colnames(subset))
+
+subset <- subset %>%
+  rename('GENEID' = 'UniProt_Gene.Names..primary.',
+         'PROTID' = 'UniProt_Protein.ID',
+         'CTRL_1' = '1_REP2_CTRL' ,
+         'PRK1_1' = '2_REP2_PRK1' ,
+         'PRK2_1' = '3_REP2_PRK2' ,
+         'PRK3_1' = '4_REP2_PRK3' ,
+         'CTRL_2' = '5_REP3_CTRL' ,
+         'PRK1_2' = '6_REP3_PRK1' ,
+         'PRK2_2' = '7_REP3_PRK2' ,
+         'PRK3_2' = '8_REP3_PRK3' ,
+         'CTRL_3' = '9_REP4_CTRL' ,
+         'PRK1_3' = '10_REP4_PRK1' ,
+         'PRK2_3' = '11_REP4_PRK2' ,
+         'PRK3_3' = '12_REP4_PRK3' ,
+         'CTRL_4' = '13_REP5_CTRL' ,
+         'PRK1_4' = '14_REP5_PRK1' ,
+         'PRK2_4' = '15_REP5_PRK2' ,
+         'PRK3_4' = '16_REP5_PRK3' ,
+         'CTRL_5' = '17_REP6_CTRL' ,
+         'PRK1_5' = '18_REP6_PRK1' ,
+         'PRK2_5' = '19_REP6_PRK2' ,
+         'PRK3_5' = '20_REP6_PRK3')
+         
+```
+
+# Perform a PCA on samples
+
+```{r PCA, message=FALSE, warning=FALSE}
+tmp <- subset %>%
+  select(GENEID, CTRL_1:PRK3_5) %>%
+  rowwise() %>%
+  mutate(most_variable = sd(c_across(CTRL_1:PRK3_5))) %>%
+  arrange(desc(most_variable)) %>%
+  ungroup() %>%
+  slice_head(n = 500) %>%
+  select(-most_variable) %>%
+  column_to_rownames(var = "GENEID") %>%
+  t() %>%
+  as.data.frame() %>%
+  mutate(condition = c("CTRL", "PRK1", "PRK2", "PRK3",
+                       "CTRL", "PRK1", "PRK2", "PRK3",
+                       "CTRL", "PRK1", "PRK2", "PRK3",
+                       "CTRL", "PRK1", "PRK2", "PRK3",
+                       "CTRL", "PRK1", "PRK2", "PRK3")) 
+
+ prcomp(tmp[, -501], center = TRUE, scale = FALSE) %>%
+    fviz_pca_ind(habillage = tmp$condition, palette = c( "#F39B7FFF",  "#94C96E", "#315D00", "#90005D")) 
+```
+
+# Number of upregulated proteins per bait
+
+Find which proteins are upregulated based on threshold of logFC > 1 and adjusted p-value < 0.05
+```{r upregulated-proteins, message=FALSE, warning=FALSE}
+subset <- subset %>%
+  mutate(up_PRK1 = ifelse(PRK1.CTRL.adj.P.Val < 0.05 & PRK1.CTRL.logFC > 1, 1, 0)) %>%
+  mutate(up_PRK2 = ifelse(PRK2.CTRL.adj.P.Val < 0.05 & PRK2.CTRL.logFC > 1, 1, 0)) %>%
+  mutate(up_PRK3 = ifelse(PRK3.CTRL.adj.P.Val < 0.05 & PRK3.CTRL.logFC > 1, 1, 0))
+
+#write.csv(subset, here('outputs', 'upset-backgroud-data.csv'))
+```
+
+Plot the barplot of upregulated proteins per bait
+```{r upregulated-proteins-per-bait, message=FALSE, warning=FALSE}
+subset %>%
+  select(GENEID, starts_with("up")) %>%
+  pivot_longer(cols = up_PRK1:up_PRK3, names_to = "bait", values_to = "upregulated") %>%
+  mutate(bait = gsub("up_", "", bait)) %>%
+  group_by(bait) %>%
+  summarise(n_upregulated = sum(upregulated)) %>%
+  ggplot(aes(x = reorder(bait, -n_upregulated), y = n_upregulated, fill = bait)) +
+  geom_bar(stat = "identity", show.legend = FALSE) +
+  theme_minimal(base_size = 17)+
+  labs(x = "Bait", y = "Number of upregulated preys") +
+  scale_fill_manual(values = c(  "#94C96E", "#315D00", "#90005D"))
+```
+
+# UpSet plot of upregulated proteins
+
+UpSet plot of upregulated preys in particular baits.
+```{r  upset-plot, message=FALSE, warning=FALSE}
+subset %>%
+  select(starts_with("up_")) %>%
+  rename_with(~ sub("up_", "", .x), everything()) %>%
+  upset(., order.by = "freq")
+```
+
+# Human Cell Map localization
+
+In order to determine whether interactions of particular bait happen in a specific cellular compartment, upregulated preys were mapped to the human cell map experimental data.
+
+```{r human-cell-map, message=FALSE, warning=FALSE}
+# Data input for Human Cell Map:
+hcm <- read.delim(here('data', 'humancellmap_20240502.txt'))
+
+#genenames_newest <- getCurrentHumanMap()
+#save(genenames_newest, file = here('data', "genenames_20240502.RData"))
+load(here('data', "genenames_20240502.RData"))
+
+# Update gene names in HCM
+update_HCM <- checkGeneSymbols(hcm$symbol, species = "human", map = genenames_newest, unmapped.as.na = FALSE)
+hcm <- left_join(hcm, update_HCM, by = c("symbol" = "x"))
+hcm$Suggested.Symbol[hcm$Suggested.Symbol == "SEPTIN2 /// SEPTIN6"] <- "SEPTIN2"
+hcm$Suggested.Symbol[hcm$Suggested.Symbol == "EPRS1 /// QARS1"] <- "QARS1"
+hcm$Suggested.Symbol[hcm$Suggested.Symbol == "MPHOSPH6 /// PALS2"] <- "PALS2"
+hcm$Suggested.Symbol[hcm$Suggested.Symbol == "MT-CO2 /// PTGS2"] <- "MT-CO2"
+
+# Update gene names in TurboID
+update_subset <- checkGeneSymbols(subset$GENEID, species = "human", map = genenames_newest, unmapped.as.na = FALSE)
+subset <- left_join(subset, update_subset, by = c("GENEID" = "x"))
+subset$Suggested.Symbol[subset$Suggested.Symbol == "MASP2 /// BRD8 /// C11orf58 /// KIFAP3"] <- "KIFAP3"
+subset$Suggested.Symbol[subset$Suggested.Symbol == "C10orf88 /// SLC38A4"] <- "C10orf88"
+```
+
+```{r human-cell-map2, message=FALSE, warning=FALSE}
+# Map onto the Human Cell Map
+data.hcm <- subset %>%
+  left_join(., hcm %>% select(Suggested.Symbol, MMF.localization), by = c("Suggested.Symbol" = "Suggested.Symbol"))
+
+data.hcm[is.na(data.hcm)] <- "-" #If protein was not mapped, use "-" instead
+
+# Split the MMF.localization by "," in case there are multiple localizations mapped to the same protein
+data.hcm <-  data.hcm %>%   
+  mutate(NMF.loc = strsplit(as.character(MMF.localization), ", ")) %>% 
+  unnest(NMF.loc)
+
+x <-  subset %>%
+  left_join(., hcm %>% select(Suggested.Symbol, MMF.localization), by = c("Suggested.Symbol" = "Suggested.Symbol"))
+
+x[is.na(x)] <- "-" #If protein was not mapped, use "-" instead
+
+# Split the MMF.localization by "," in case there are multiple localizations mapped to the same protein
+x <-  x %>%   
+  mutate(NMF.loc = strsplit(as.character(MMF.localization), ", ")) %>% 
+  unnest(NMF.loc)
+
+#write.csv(x, here('outputs', 'HumanCellMap_localization.csv'))
+
+# Create long table
+data.hcm <- data.hcm %>%
+  select(Suggested.Symbol, starts_with("up_"), NMF.loc) %>%
+  rename_with(~ sub("up_", "", .x), everything()) %>%
+  pivot_longer(cols = PRK1:PRK3,
+               names_to = "bait",
+               values_to = "significant")
+
+#svg(here('outputs', '02_PCP-interactome-description', '02_facetBarplot-humancellmap_multicolor.svg'))
+data.hcm %>%
+  group_by(bait, NMF.loc) %>%
+  summarise(n_preys = sum(significant)) %>%
+  filter(n_preys != 0) %>%
+  mutate(top_loc = case_when(
+    n_preys == max(n_preys) ~ "max",
+    TRUE ~ "")
+  ) %>%
+  mutate(top_localization = case_when(
+    top_loc == "max" & bait == "PRK1" ~ "PRK1",
+    top_loc == "max" & bait == "PRK2" ~ "PRK2",
+    top_loc == "max" & bait == "PRK3" ~ "PRK3",
+    TRUE ~ ""
+      )) %>%
+  ggplot(aes(x = NMF.loc, y = n_preys, fill = top_localization)) +
+  geom_bar(stat = "identity")+
+  theme_minimal()+
+  theme(axis.text.x = element_text(angle = 45, hjust=1)) +
+  labs(x = "Prey localization in Human Cell Map",
+       y = "Number of preys") + 
+  facet_grid(bait ~ .) + 
+  scale_fill_manual(values = c("#b8B8B8",  "#94C96E", "#315D00", "#90005D" ))
+#dev.off()
+
+# Filter out the "-" (non-mapped) proteins
+data.hcm %>%
+  group_by(bait, NMF.loc) %>%
+  filter(NMF.loc != "-") %>%
+  summarise(n_preys = sum(significant)) %>%
+  filter(n_preys != 0) %>%
+  mutate(top_loc = case_when(
+    n_preys == max(n_preys) ~ "max",
+    TRUE ~ "")
+  ) %>%
+  mutate(top_localization = case_when(
+    top_loc == "max" & bait == "PRK1" ~ "PRK1",
+    top_loc == "max" & bait == "PRK2" ~ "PRK2",
+    top_loc == "max" & bait == "PRK3" ~ "PRK3",
+    TRUE ~ ""
+      )) %>%
+  ggplot(aes(x = NMF.loc, y = n_preys, fill = top_localization)) +
+  geom_bar(stat = "identity")+
+  theme_minimal()+
+  theme(axis.text.x = element_text(angle = 45, hjust=1)) +
+  labs(x = "Prey localization in Human Cell Map",
+       y = "Number of preys") + 
+  facet_grid(bait ~ .) + 
+  scale_fill_manual(values = c("#b8B8B8", "#94C96E", "#315D00", "#90005D"))
+
+# Localization table
+hcm.count <- data.hcm %>%
+  group_by(bait, NMF.loc) %>%
+  filter(NMF.loc != "-") %>%
+  summarise(n_preys = sum(significant)) %>%
+  filter(n_preys != 0) %>%
+  mutate(top_loc = case_when(
+    n_preys == max(n_preys) ~ "max",
+    TRUE ~ ""))
+
+#write.csv(hcm.count, here("outputs", "humancellmap_numbers.csv"))
+```
+
+

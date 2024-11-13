@@ -8,7 +8,7 @@ Katarzyna A. Radaszkiewicz<sup>1</sup>, Tomasz W. Radaszkiewicz<sup>1</sup>, Pav
 
 <sup>2</sup>Department of Histology and Embryology, Faculty of Medicine, Masaryk University, Brno, Czechia. 
 
-<sup>3</>CEITEC-Central European Institute of Technology, Masaryk University, Brno, Czechia. 
+<sup>3</sup>CEITEC-Central European Institute of Technology, Masaryk University, Brno, Czechia. 
 
 <sup>4</sup>National Centre for Biomolecular Research, Faculty of Science, Masaryk University, Brno, Czechia. 
 
