@@ -56,7 +56,8 @@ subset <- subset %>%
          'PRK1_5' = '18_REP6_PRK1' ,
          'PRK2_5' = '19_REP6_PRK2' ,
          'PRK3_5' = '20_REP6_PRK3')
-         
+
+save(subset, file=here("data", "data-preprocessed.Rdata"))
 ```
 
 # Perform a PCA on samples
@@ -179,7 +180,6 @@ data.hcm <- data.hcm %>%
                names_to = "bait",
                values_to = "significant")
 
-#svg(here('outputs', '02_PCP-interactome-description', '02_facetBarplot-humancellmap_multicolor.svg'))
 data.hcm %>%
   group_by(bait, NMF.loc) %>%
   summarise(n_preys = sum(significant)) %>%
@@ -202,7 +202,6 @@ data.hcm %>%
        y = "Number of preys") + 
   facet_grid(bait ~ .) + 
   scale_fill_manual(values = c("#b8B8B8",  "#94C96E", "#315D00", "#90005D" ))
-#dev.off()
 
 # Filter out the "-" (non-mapped) proteins
 data.hcm %>%
