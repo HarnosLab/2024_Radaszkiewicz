@@ -56,8 +56,6 @@ subset <- subset %>%
          'PRK1_5' = '18_REP6_PRK1' ,
          'PRK2_5' = '19_REP6_PRK2' ,
          'PRK3_5' = '20_REP6_PRK3')
-
-save(subset, file=here("data", "data-preprocessed.Rdata"))
 ```
 
 # Perform a PCA on samples
@@ -93,7 +91,6 @@ subset <- subset %>%
   mutate(up_PRK2 = ifelse(PRK2.CTRL.adj.P.Val < 0.05 & PRK2.CTRL.logFC > 1, 1, 0)) %>%
   mutate(up_PRK3 = ifelse(PRK3.CTRL.adj.P.Val < 0.05 & PRK3.CTRL.logFC > 1, 1, 0))
 
-#write.csv(subset, here('outputs', 'upset-backgroud-data.csv'))
 ```
 
 Plot the barplot of upregulated proteins per bait
@@ -146,6 +143,8 @@ update_subset <- checkGeneSymbols(subset$GENEID, species = "human", map = genena
 subset <- left_join(subset, update_subset, by = c("GENEID" = "x"))
 subset$Suggested.Symbol[subset$Suggested.Symbol == "MASP2 /// BRD8 /// C11orf58 /// KIFAP3"] <- "KIFAP3"
 subset$Suggested.Symbol[subset$Suggested.Symbol == "C10orf88 /// SLC38A4"] <- "C10orf88"
+
+save(subset, file=here("data", "data-preprocessed.Rdata"))
 ```
 
 ```{r human-cell-map2, message=FALSE, warning=FALSE}
