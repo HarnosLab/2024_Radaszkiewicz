@@ -2,15 +2,15 @@
 
 ## Authors
 
-Katarzyna A. Radaszkiewicz^1^, Tomasz W. Radaszkiewicz^1^, Pavla Kolářová^1^, Petra Paclíková^1^, Kristína Gömöryová^1^, Tomáš Bárta^2^, Kateřina Hanáková^3,4^, Zbyněk Zdráhal^3,4^, and Jakub Harnoš^1*^
+Katarzyna A. Radaszkiewicz<sup>1</sup>, Tomasz W. Radaszkiewicz<sup>1</sup>, Pavla Kolářová<sup>1</sup>, Petra Paclíková<sup>1</sup>, Kristína Gömöryová<sup>1</sup>, Tomáš Bárta<sup>2</sup>, Kateřina Hanáková<sup>3,4</sup>, Zbyněk Zdráhal<sup>3,4</sup>, and Jakub Harnoš<sup>1*</sup>
 
-^1^Department of Experimental Biology, Faculty of Science, Masaryk University, Brno, Czechia. 
+<sup>1</sup>Department of Experimental Biology, Faculty of Science, Masaryk University, Brno, Czechia. 
 
-^2^Department of Histology and Embryology, Faculty of Medicine, Masaryk University, Brno, Czechia. 
+<sup>2</sup>Department of Histology and Embryology, Faculty of Medicine, Masaryk University, Brno, Czechia. 
 
-^3^CEITEC-Central European Institute of Technology, Masaryk University, Brno, Czechia. 
+<sup>3</>CEITEC-Central European Institute of Technology, Masaryk University, Brno, Czechia. 
 
-^4^National Centre for Biomolecular Research, Faculty of Science, Masaryk University, Brno, Czechia. 
+<sup>4</sup>National Centre for Biomolecular Research, Faculty of Science, Masaryk University, Brno, Czechia. 
 
 This repository accompanies the above-mentioned manuscript and provides the scripts related to processing of mass spectrometry data.
 
